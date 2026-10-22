@@ -16,7 +16,7 @@ jobs:
 
       - name: Select Xcode Version
         run: |
-          sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
+          sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.app || true
           xcodebuild -version
 
       - name: Install XcodeGen
@@ -46,6 +46,7 @@ jobs:
           mkdir -p Payload
           cp -r build/Build/Products/Release-iphoneos/BikeNav.app Payload/
           zip -r BikeNav.ipa Payload
+          ls -la BikeNav.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
