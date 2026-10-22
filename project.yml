@@ -1,0 +1,22 @@
+name: BikeNav
+options:
+  bundleIdPrefix: com.bikenav
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  BikeNav:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: BikeNav
+    info:
+      path: BikeNav/Info.plist
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.bikenav.app
+      INFOPLIST_FILE: BikeNav/Info.plist
+      GENERATE_INFOPLIST_KEY: NO
+      SWIFT_VERSION: "5.0"
+      CODE_SIGNING_ALLOWED: NO
+      CODE_SIGNING_REQUIRED: NO
+      CODE_SIGN_IDENTITY: ""
