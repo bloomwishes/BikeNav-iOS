@@ -115,12 +115,23 @@ class MapCoordinator: NSObject {
     
     // MARK: - Route Polyline
     
+    /// Calculates a fast hash for coordinate arrays to detect route changes
+    private func computeHash(for points: [CLLocationCoordinate2D]) -> Int {
+        var hasher = Hasher()
+        hasher.combine(points.count)
+        for point in points {
+            hasher.combine(point.latitude)
+            hasher.combine(point.longitude)
+        }
+        return hasher.finalize()
+    }
+    
     /// Updates the route polyline on the map.
     /// - Parameters:
     ///   - points: Array of coordinates forming the route.
     ///   - mapView: The GMSMapView to draw on.
     func updateRoutePolyline(points: [CLLocationCoordinate2D], on mapView: GMSMapView) {
-        let newHash = points.hashValue
+        let newHash = computeHash(for: points)
         guard newHash != lastPolylineHash else { return }
         lastPolylineHash = newHash
         
