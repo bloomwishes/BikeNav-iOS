@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: com.bikenav
   deploymentTarget:
     iOS: "16.0"
+  xcodeVersion: "16.0"
 targets:
   BikeNav:
     type: application
@@ -12,6 +13,8 @@ targets:
       - path: BikeNav
     info:
       path: BikeNav/Info.plist
+    scheme:
+      testTargets: []
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.bikenav.app
       INFOPLIST_FILE: BikeNav/Info.plist
