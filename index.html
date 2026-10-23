@@ -1306,15 +1306,14 @@
       document.getElementById("settingsModal").style.display = "none";
     });
 
-    document.getElementById("saveSettingsBtn").addEventListener("click", () => {
-      const key = document.getElementById("apiKeyInput").value.trim();
-      if (key) {
-        localStorage.setItem("google_maps_api_key", key);
-        location.reload();
-      } else {
-        alert("Please enter a valid Google Maps API Key.");
+    document.getElementById("settingsModal").addEventListener("click", (e) => {
+      if (e.target.id === "settingsModal") {
+        document.getElementById("settingsModal").style.display = "none";
       }
     });
+
+    document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+      const key = document.getElementById("apiKeyInput").value.trim();
       if (key) {
         localStorage.setItem("google_maps_api_key", key);
         location.reload();
