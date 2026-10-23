@@ -140,26 +140,165 @@
       box-shadow: 0 0 16px rgba(0, 230, 118, 0.4);
     }
 
-    /* Bottom HUD / Turn-by-Turn Card */
-    .hud-card {
+    /* Top Sub-Bar Quick Status Pill */
+    .top-sub-bar {
+      display: flex;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    .ble-quick-pill {
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      padding: 5px 14px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: all 0.25s ease;
+    }
+
+    .ble-quick-pill:active {
+      transform: scale(0.95);
+    }
+
+    .ble-quick-pill.connected {
+      border-color: rgba(0, 230, 118, 0.4);
+      color: var(--green);
+      background: rgba(0, 230, 118, 0.12);
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+    }
+
+    .ble-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-sub);
+      transition: all 0.2s ease;
+    }
+
+    .ble-quick-pill.connected .ble-dot {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* Idle Map Tap Hint Pill */
+    .idle-hint-pill {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 20px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(18, 24, 38, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 8px 18px;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .idle-hint-pill.hidden {
+      opacity: 0;
+      transform: translate(-50%, 20px);
+    }
+
+    /* Bottom Sheets (Fluid iOS Spring Animation) */
+    .bottom-sheet {
       position: absolute;
       bottom: calc(env(safe-area-inset-bottom, 16px) + 12px);
       left: 16px;
       right: 16px;
-      z-index: 20;
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      z-index: 30;
+      background: rgba(14, 20, 32, 0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--card-border);
-      border-radius: 24px;
+      border-radius: 26px;
       padding: 16px 20px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.7);
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      gap: 14px;
+      transform: translateY(140%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
     }
 
+    .bottom-sheet.visible {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bottom-sheet.collapsed {
+      transform: translateY(calc(100% - 64px));
+    }
+
+    .sheet-handle {
+      width: 38px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      margin: 0 auto -2px auto;
+      cursor: pointer;
+      padding: 6px 0;
+      background-clip: content-box;
+    }
+
+    /* Route Summary Row */
+    .route-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 8px 0 2px 0;
+    }
+
+    .route-metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .route-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .route-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-top: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    .route-divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Active Maneuver Box */
     .hud-primary {
       display: flex;
       align-items: center;
@@ -167,15 +306,15 @@
     }
 
     .hud-maneuver-box {
-      width: 64px;
-      height: 64px;
+      width: 60px;
+      height: 60px;
       background: rgba(41, 121, 255, 0.15);
       border: 2px solid var(--blue);
       border-radius: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 36px;
+      font-size: 34px;
       flex-shrink: 0;
       transition: all 0.3s ease;
     }
@@ -186,7 +325,7 @@
     }
 
     .hud-dist {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
       letter-spacing: -0.5px;
       color: #ffffff;
@@ -195,7 +334,7 @@
     }
 
     .hud-street {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--cyan);
       white-space: nowrap;
@@ -238,10 +377,10 @@
       color: var(--text-main);
     }
 
-    .hud-actions {
+    .sheet-btn-row {
       display: flex;
       gap: 10px;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .btn {
@@ -256,24 +395,29 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.2s ease;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
     }
 
     .btn-primary {
       background: var(--blue);
       color: #fff;
+      box-shadow: 0 4px 20px rgba(41, 121, 255, 0.4);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .btn-stop {
       background: rgba(255, 61, 0, 0.2);
       border: 1px solid var(--red);
       color: var(--red);
-    }
-
-    .btn-ble {
-      background: rgba(0, 230, 118, 0.15);
-      border: 1px solid var(--green);
-      color: var(--green);
     }
 
     /* Modal dialogs */
@@ -396,48 +540,89 @@
         ⚙️
       </button>
     </div>
+
+    <!-- Quick BLE Status Pill -->
+    <div class="top-sub-bar">
+      <div class="ble-quick-pill" id="quickBleStatus">
+        <div class="ble-dot"></div>
+        <span id="quickBleText">ESP32 Disconnected</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Bottom Navigation HUD -->
-  <div class="hud-card" id="hudCard">
-    <div class="hud-primary">
+  <!-- Idle Map Tap Hint (Hidden when cards are open) -->
+  <div class="idle-hint-pill" id="idleHintPill">
+    <span>📍 Tap anywhere on map or search to choose destination</span>
+  </div>
+
+  <!-- 1. Destination Confirmation Sheet (No API calls until confirmed) -->
+  <div class="bottom-sheet" id="destConfirmSheet">
+    <div class="sheet-handle"></div>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="font-size: 32px; line-height: 1;">📍</div>
+      <div style="flex: 1; min-width: 0;">
+        <div id="confirmPlaceName" style="font-size: 17px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Selected Location</div>
+        <div id="confirmPlaceAddr" style="font-size: 13px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">Calculate bike directions?</div>
+      </div>
+    </div>
+    <div class="sheet-btn-row">
+      <button class="btn btn-ghost" id="cancelConfirmBtn">✕ Clear</button>
+      <button class="btn btn-primary" id="confirmRouteBtn">🚴 Get Route</button>
+    </div>
+  </div>
+
+  <!-- 2. Route Preview & Navigation HUD Sheet -->
+  <div class="bottom-sheet" id="navHudSheet">
+    <div class="sheet-handle" id="hudCollapseToggle" title="Tap to toggle collapse"></div>
+
+    <!-- Active Turn-by-Turn View (Only when riding) -->
+    <div class="hud-primary" id="hudActivePrimary" style="display: none;">
       <div class="hud-maneuver-box" id="hudIcon">🚴</div>
       <div class="hud-details">
-        <div class="hud-dist" id="hudDist">READY</div>
-        <div class="hud-street" id="hudStreet">Search destination to start</div>
+        <div class="hud-dist" id="hudDist">---</div>
+        <div class="hud-street" id="hudStreet">Follow Route</div>
         <div class="hud-then" id="hudThen"></div>
       </div>
     </div>
 
-    <div class="hud-stats-bar">
+    <!-- Route Summary Box (Shown when route calculated, before Start) -->
+    <div class="route-summary" id="hudRouteSummary">
+      <div class="route-metric">
+        <span class="route-val" id="summaryDist">-- km</span>
+        <span class="route-lbl">DISTANCE</span>
+      </div>
+      <div class="route-divider"></div>
+      <div class="route-metric">
+        <span class="route-val" id="summaryTime">-- min</span>
+        <span class="route-lbl">EST. TIME</span>
+      </div>
+      <div class="route-divider"></div>
+      <div class="route-metric">
+        <span class="route-val" id="summarySpeed">BIKE</span>
+        <span class="route-lbl">ROUTE</span>
+      </div>
+    </div>
+
+    <!-- Ride Stats Ticker (Speed, Remaining, ETA) -->
+    <div class="hud-stats-bar" id="hudStatsBar" style="display: none;">
+      <div class="stat-item">
+        <span class="stat-label">SPEED</span>
+        <span class="stat-val" id="hudSpeed">0 km/h</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">REMAINING</span>
+        <span class="stat-val" id="hudRem">--</span>
+      </div>
       <div class="stat-item">
         <span class="stat-label">ETA</span>
         <span class="stat-val" id="hudEta">--:--</span>
       </div>
-      <div class="stat-item">
-        <span class="stat-label">Remaining</span>
-        <span class="stat-val" id="hudRem">--</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Speed</span>
-        <span class="stat-val" id="hudSpeed">0 km/h</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">ESP32</span>
-        <span class="stat-val ble-status-pill" id="hudBleStatus">Disconnected</span>
-      </div>
     </div>
 
-    <div class="hud-actions" id="hudActions">
-      <button class="btn btn-ble" id="connectBleActionBtn">
-        <span>⚡ Connect ESP32 BLE</span>
-      </button>
-      <button class="btn btn-primary" id="startNavBtn" style="display: none;">
-        <span>▶ Start Navigation</span>
-      </button>
-      <button class="btn btn-stop" id="stopNavBtn" style="display: none;">
-        <span>⏹ Stop Route</span>
-      </button>
+    <div class="sheet-btn-row">
+      <button class="btn btn-ghost" id="cancelRouteBtn">✕ Clear</button>
+      <button class="btn btn-primary" id="startRideBtn">▶ Start Ride</button>
+      <button class="btn btn-stop" id="stopRideBtn" style="display: none;">⏹ End Ride</button>
     </div>
   </div>
 
@@ -607,16 +792,18 @@
         }
       });
 
-      // Tap anywhere on map to set destination pin
+      // Tap anywhere on map to select destination pin
       const geocoder = new google.maps.Geocoder();
       map.addListener("click", (e) => {
         if (e && e.latLng) {
           geocoder.geocode({ location: e.latLng }, (results, status) => {
             let label = "Selected Location";
+            let addr = "Tap 'Get Route' to calculate bike directions";
             if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
-              label = results[0].formatted_address.split(",")[0] || results[0].formatted_address;
+              label = results[0].formatted_address.split(",")[0] || "Selected Location";
+              addr = results[0].formatted_address;
             }
-            setDestination(e.latLng, label);
+            selectDestination(e.latLng, label, addr);
           });
         }
       });
@@ -629,15 +816,15 @@
     };
 
     // =========================================================================
-    // 2. Set Destination & Places Autocomplete
+    // 2. Select Destination & Places Autocomplete
     // =========================================================================
-    function setDestination(latLng, name) {
+    function selectDestination(latLng, name, addr) {
       destinationCoord = latLng;
       destinationName = name || "Destination";
       document.getElementById("searchInput").value = destinationName;
       document.getElementById("clearSearchBtn").style.display = "block";
 
-      // Place destination pin
+      // Place destination pin with drop animation
       if (destMarker) destMarker.setMap(null);
       destMarker = new google.maps.Marker({
         position: destinationCoord,
@@ -646,7 +833,34 @@
         animation: google.maps.Animation.DROP
       });
 
-      calculateRoute(destinationCoord);
+      // Show confirmation sheet (NO API calls until user taps Get Route!)
+      document.getElementById("confirmPlaceName").textContent = destinationName;
+      document.getElementById("confirmPlaceAddr").textContent = addr || "Tap 'Get Route' to calculate directions";
+      document.getElementById("destConfirmSheet").classList.add("visible");
+      document.getElementById("idleHintPill").classList.add("hidden");
+      document.getElementById("navHudSheet").classList.remove("visible");
+
+      map.panTo(destinationCoord);
+    }
+
+    function clearDestination() {
+      if (destMarker) {
+        destMarker.setMap(null);
+        destMarker = null;
+      }
+      if (directionsRenderer) {
+        directionsRenderer.setDirections({ routes: [] });
+      }
+      destinationCoord = null;
+      destinationName = "";
+      isNavigating = false;
+      currentRouteSteps = [];
+      document.getElementById("searchInput").value = "";
+      document.getElementById("clearSearchBtn").style.display = "none";
+      document.getElementById("destConfirmSheet").classList.remove("visible");
+      document.getElementById("navHudSheet").classList.remove("visible");
+      document.getElementById("idleHintPill").classList.remove("hidden");
+      sendNavDataToESP32("IDLE", "---", "Open BikeNav App", "--:--", "", 0, "");
     }
 
     function initAutocomplete(geocoder) {
@@ -655,13 +869,13 @@
         fields: ["geometry", "name", "formatted_address"]
       });
 
-      function geocodeAndSet(query) {
+      function geocodeAndSelect(query) {
         if (!query || query.trim().length === 0) return;
         geocoder.geocode({ address: query }, (results, status) => {
           if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
-            setDestination(results[0].geometry.location, results[0].formatted_address || query);
+            selectDestination(results[0].geometry.location, results[0].formatted_address.split(",")[0], results[0].formatted_address);
           } else {
-            alert("Could not find location: " + query + "\n\n💡 Tip: You can also tap directly anywhere on the map to drop a destination pin!");
+            alert("Could not find location: " + query + "\n\n💡 Tip: You can also tap directly anywhere on the map to place a pin!");
           }
         });
       }
@@ -669,9 +883,9 @@
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (place && place.geometry && place.geometry.location) {
-          setDestination(place.geometry.location, place.name || place.formatted_address || "Destination");
+          selectDestination(place.geometry.location, place.name || "Destination", place.formatted_address || "");
         } else if (input.value.trim().length > 0) {
-          geocodeAndSet(input.value.trim());
+          geocodeAndSelect(input.value.trim());
         }
       });
 
@@ -682,9 +896,9 @@
           input.blur();
           const place = autocomplete.getPlace();
           if (place && place.geometry && place.geometry.location) {
-            setDestination(place.geometry.location, place.name || "Destination");
+            selectDestination(place.geometry.location, place.name || "Destination", place.formatted_address || "");
           } else if (input.value.trim().length > 0) {
-            geocodeAndSet(input.value.trim());
+            geocodeAndSelect(input.value.trim());
           }
         }
       });
@@ -703,20 +917,29 @@
       };
 
       directionsService.route(request, (result, status) => {
+        document.getElementById("confirmRouteBtn").textContent = "🚴 Get Route";
         if (status === google.maps.DirectionsStatus.OK) {
           directionsRenderer.setDirections(result);
           parseRouteSteps(result);
 
-          // Show Start Button
-          document.getElementById("startNavBtn").style.display = "flex";
-          document.getElementById("connectBleActionBtn").style.display = bleConnected ? "none" : "flex";
-          document.getElementById("stopNavBtn").style.display = "none";
-
           const leg = result.routes[0].legs[0];
+          document.getElementById("summaryDist").textContent = leg.distance.text;
+          document.getElementById("summaryTime").textContent = leg.duration.text;
+          document.getElementById("summarySpeed").textContent = "BIKE";
           document.getElementById("hudDist").textContent = leg.distance.text;
           document.getElementById("hudStreet").textContent = destinationName;
           document.getElementById("hudRem").textContent = leg.distance.text;
           document.getElementById("hudEta").textContent = leg.duration.text;
+
+          // Show route preview sheet
+          document.getElementById("destConfirmSheet").classList.remove("visible");
+          document.getElementById("navHudSheet").classList.add("visible");
+          document.getElementById("hudActivePrimary").style.display = "none";
+          document.getElementById("hudRouteSummary").style.display = "flex";
+          document.getElementById("hudStatsBar").style.display = "none";
+          document.getElementById("startRideBtn").style.display = "flex";
+          document.getElementById("cancelRouteBtn").style.display = "flex";
+          document.getElementById("stopRideBtn").style.display = "none";
         } else {
           // Fallback to driving if bicycling is unavailable in region
           request.travelMode = google.maps.TravelMode.DRIVING;
@@ -724,13 +947,26 @@
             if (stat2 === google.maps.DirectionsStatus.OK) {
               directionsRenderer.setDirections(res2);
               parseRouteSteps(res2);
-              document.getElementById("startNavBtn").style.display = "flex";
-              document.getElementById("connectBleActionBtn").style.display = bleConnected ? "none" : "flex";
+
               const leg = res2.routes[0].legs[0];
+              document.getElementById("summaryDist").textContent = leg.distance.text;
+              document.getElementById("summaryTime").textContent = leg.duration.text;
+              document.getElementById("summarySpeed").textContent = "DRIVE";
               document.getElementById("hudDist").textContent = leg.distance.text;
               document.getElementById("hudStreet").textContent = destinationName;
               document.getElementById("hudRem").textContent = leg.distance.text;
               document.getElementById("hudEta").textContent = leg.duration.text;
+
+              document.getElementById("destConfirmSheet").classList.remove("visible");
+              document.getElementById("navHudSheet").classList.add("visible");
+              document.getElementById("hudActivePrimary").style.display = "none";
+              document.getElementById("hudRouteSummary").style.display = "flex";
+              document.getElementById("hudStatsBar").style.display = "none";
+              document.getElementById("startRideBtn").style.display = "flex";
+              document.getElementById("cancelRouteBtn").style.display = "flex";
+              document.getElementById("stopRideBtn").style.display = "none";
+            } else if (stat2 === "REQUEST_DENIED" || status === "REQUEST_DENIED") {
+              alert("Google Maps 'REQUEST_DENIED' Error:\n\nIn Google Cloud Console:\n1. Search for and ENABLE 'Directions API'\n2. Under 'APIs & Services > Credentials', click your API key and set 'API restrictions' to 'Don't restrict key' (or check Directions API)\n3. Under 'Application restrictions', select 'None' for now.\n4. Make sure a Billing Account is linked.");
             } else {
               alert("Could not calculate route: " + stat2 + "\n\nReason: Google could not find a road route to this point. Please try a nearby road or tap on a road on the map.");
             }
@@ -876,6 +1112,23 @@
     // =========================================================================
     // 5. Web Bluetooth (BLE) to ESP32
     // =========================================================================
+    function updateBleUI(connected, text) {
+      bleConnected = connected;
+      const bleBtn = document.getElementById("bleBtn");
+      const quickPill = document.getElementById("quickBleStatus");
+      const quickText = document.getElementById("quickBleText");
+
+      if (connected) {
+        bleBtn.classList.add("connected");
+        quickPill.classList.add("connected");
+        quickText.textContent = text || "ESP32 Connected";
+      } else {
+        bleBtn.classList.remove("connected");
+        quickPill.classList.remove("connected");
+        quickText.textContent = text || "ESP32 Disconnected";
+      }
+    }
+
     async function connectBLE() {
       if (!navigator.bluetooth) {
         alert("Web Bluetooth is not available in this browser!\n\n👉 On iPhone, you must open this webpage in the free 'Bluefy' app from the App Store.");
@@ -883,7 +1136,7 @@
       }
 
       try {
-        document.getElementById("hudBleStatus").textContent = "Pairing...";
+        updateBleUI(false, "Pairing...");
         
         bleDevice = await navigator.bluetooth.requestDevice({
           filters: [
@@ -895,11 +1148,11 @@
 
         bleDevice.addEventListener("gattserverdisconnected", onBleDisconnected);
 
-        document.getElementById("hudBleStatus").textContent = "Connecting...";
+        updateBleUI(false, "Connecting...");
         console.log("[BLE] Connecting to GATT Server...");
         const server = await bleDevice.gatt.connect();
 
-        document.getElementById("hudBleStatus").textContent = "Discovering...";
+        updateBleUI(false, "Discovering...");
         // Allow iOS CoreBluetooth stack to settle before service discovery
         await new Promise(r => setTimeout(r, 400));
 
@@ -909,11 +1162,7 @@
         console.log("[BLE] Discovering Nav Characteristic...");
         navCharacteristic = await service.getCharacteristic(NAV_CHAR_UUID);
 
-        bleConnected = true;
-        document.getElementById("bleBtn").classList.add("connected");
-        document.getElementById("hudBleStatus").textContent = "Connected";
-        document.getElementById("hudBleStatus").classList.add("connected");
-        document.getElementById("connectBleActionBtn").style.display = "none";
+        updateBleUI(true, "ESP32 Connected");
 
         // Keep phone screen awake while riding
         requestWakeLock();
@@ -924,27 +1173,20 @@
         console.log("[BLE] Handshake sent successfully!");
       } catch (err) {
         console.error("BLE Connect failed:", err);
-        document.getElementById("hudBleStatus").textContent = "Disconnected";
-        document.getElementById("hudBleStatus").classList.remove("connected");
-        if (!isNavigating) {
-          document.getElementById("connectBleActionBtn").style.display = "flex";
-        }
+        updateBleUI(false, "ESP32 Disconnected");
 
         const msg = String(err.message || err);
         // Only alert if it's not a user cancellation of the device picker
         if (!msg.toLowerCase().includes("cancel") && !msg.toLowerCase().includes("abort")) {
-          alert("Bluetooth Connection Notice:\n" + msg + "\n\n💡 Tip: If you connected in iPhone Settings > Bluetooth, please 'Forget This Device' in iPhone Settings first. Web Bluetooth must connect directly from this page in Bluefy.");
+          alert("Bluetooth Notice:\n" + msg + "\n\n💡 Tip: If you connected in iPhone Settings > Bluetooth, please 'Forget This Device' in iPhone Settings first. Web Bluetooth must connect directly from this page in Bluefy.");
         }
       }
     }
 
     function onBleDisconnected() {
       console.log("[BLE] Peripheral disconnected.");
-      bleConnected = false;
       navCharacteristic = null;
-      document.getElementById("bleBtn").classList.remove("connected");
-      document.getElementById("hudBleStatus").textContent = "Reconnecting...";
-      document.getElementById("hudBleStatus").classList.remove("connected");
+      updateBleUI(false, "Reconnecting...");
 
       // Auto-reconnect after brief backoff if GATT device handle is preserved
       if (bleDevice && bleDevice.gatt) {
@@ -957,25 +1199,15 @@
             const service = await server.getPrimaryService(SERVICE_UUID);
             navCharacteristic = await service.getCharacteristic(NAV_CHAR_UUID);
 
-            bleConnected = true;
-            document.getElementById("bleBtn").classList.add("connected");
-            document.getElementById("hudBleStatus").textContent = "Connected";
-            document.getElementById("hudBleStatus").classList.add("connected");
-            document.getElementById("connectBleActionBtn").style.display = "none";
+            updateBleUI(true, "ESP32 Connected");
             console.log("[BLE] Auto-reconnected!");
           } catch (e) {
             console.warn("[BLE] Auto-reconnect failed:", e);
-            document.getElementById("hudBleStatus").textContent = "Disconnected";
-            if (!isNavigating) {
-              document.getElementById("connectBleActionBtn").style.display = "flex";
-            }
+            updateBleUI(false, "ESP32 Disconnected");
           }
         }, 1200);
       } else {
-        document.getElementById("hudBleStatus").textContent = "Disconnected";
-        if (!isNavigating) {
-          document.getElementById("connectBleActionBtn").style.display = "flex";
-        }
+        updateBleUI(false, "ESP32 Disconnected");
       }
     }
 
@@ -1030,36 +1262,39 @@
     // 7. Event Listeners & Controls
     // =========================================================================
     document.getElementById("bleBtn").addEventListener("click", connectBLE);
-    document.getElementById("connectBleActionBtn").addEventListener("click", connectBLE);
+    document.getElementById("quickBleStatus").addEventListener("click", connectBLE);
 
-    document.getElementById("startNavBtn").addEventListener("click", () => {
+    document.getElementById("confirmRouteBtn").addEventListener("click", () => {
+      if (!destinationCoord) return;
+      document.getElementById("confirmRouteBtn").textContent = "⏳ Calculating...";
+      calculateRoute(destinationCoord);
+    });
+
+    document.getElementById("cancelConfirmBtn").addEventListener("click", clearDestination);
+    document.getElementById("cancelRouteBtn").addEventListener("click", clearDestination);
+    document.getElementById("clearSearchBtn").addEventListener("click", clearDestination);
+
+    document.getElementById("hudCollapseToggle").addEventListener("click", () => {
+      document.getElementById("navHudSheet").classList.toggle("collapsed");
+    });
+
+    document.getElementById("startRideBtn").addEventListener("click", () => {
       isNavigating = true;
-      document.getElementById("startNavBtn").style.display = "none";
-      document.getElementById("stopNavBtn").style.display = "flex";
+      document.getElementById("hudActivePrimary").style.display = "flex";
+      document.getElementById("hudRouteSummary").style.display = "none";
+      document.getElementById("hudStatsBar").style.display = "flex";
+      document.getElementById("startRideBtn").style.display = "none";
+      document.getElementById("cancelRouteBtn").style.display = "none";
+      document.getElementById("stopRideBtn").style.display = "flex";
       map.setZoom(18);
       requestWakeLock();
+      if (userMarker && userMarker.getPosition()) {
+        updateNavigationProgress(userMarker.getPosition(), 0);
+      }
     });
 
-    document.getElementById("stopNavBtn").addEventListener("click", () => {
-      isNavigating = false;
-      document.getElementById("startNavBtn").style.display = "flex";
-      document.getElementById("stopNavBtn").style.display = "none";
-      document.getElementById("hudIcon").textContent = "🚴";
-      document.getElementById("hudDist").textContent = "READY";
-      document.getElementById("hudStreet").textContent = "Search destination";
-      sendNavDataToESP32("IDLE", "---", "Open BikeNav App", "--:--", "", 0, "");
-    });
-
-    document.getElementById("clearSearchBtn").addEventListener("click", () => {
-      document.getElementById("searchInput").value = "";
-      document.getElementById("clearSearchBtn").style.display = "none";
-      if (destMarker) destMarker.setMap(null);
-      if (directionsRenderer) directionsRenderer.setDirections({ routes: [] });
-      isNavigating = false;
-      document.getElementById("startNavBtn").style.display = "none";
-      document.getElementById("stopNavBtn").style.display = "none";
-      document.getElementById("connectBleActionBtn").style.display = bleConnected ? "none" : "flex";
-      sendNavDataToESP32("IDLE", "---", "Open BikeNav App", "--:--", "", 0, "");
+    document.getElementById("stopRideBtn").addEventListener("click", () => {
+      clearDestination();
     });
 
     document.getElementById("settingsBtn").addEventListener("click", () => {
@@ -1073,6 +1308,13 @@
 
     document.getElementById("saveSettingsBtn").addEventListener("click", () => {
       const key = document.getElementById("apiKeyInput").value.trim();
+      if (key) {
+        localStorage.setItem("google_maps_api_key", key);
+        location.reload();
+      } else {
+        alert("Please enter a valid Google Maps API Key.");
+      }
+    });
       if (key) {
         localStorage.setItem("google_maps_api_key", key);
         location.reload();
