@@ -341,6 +341,37 @@
       background: rgba(0, 230, 118, 0.2);
       color: var(--green);
     }
+
+    /* Google Places Autocomplete dropdown on mobile */
+    .pac-container {
+      background-color: #161d2f !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 16px !important;
+      margin-top: 6px !important;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.7) !important;
+      z-index: 99999 !important;
+      pointer-events: auto !important;
+      font-family: inherit !important;
+    }
+    .pac-item {
+      padding: 10px 16px !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #cbd5e1 !important;
+      cursor: pointer !important;
+      line-height: 24px !important;
+    }
+    .pac-item:hover, .pac-item-selected {
+      background-color: rgba(41, 121, 255, 0.25) !important;
+    }
+    .pac-item-query {
+      color: #ffffff !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+    }
+    .pac-matched {
+      color: #00e5ff !important;
+      font-weight: 700 !important;
+    }
   </style>
 </head>
 <body>
@@ -492,6 +523,10 @@
     // =========================================================================
     // 1. Google Maps Initialization
     // =========================================================================
+    window.gm_authFailure = function() {
+      alert("Google Maps Authentication Error:\n\nYour API key was rejected by Google. Please ensure:\n1. 'Maps JavaScript API' is ENABLED in Google Cloud Console\n2. 'Places API' is ENABLED in Google Cloud Console\n3. Website restrictions include: https://bloomwishes.github.io/*");
+    };
+
     function getStoredApiKey() {
       const urlParams = new URLSearchParams(window.location.search);
       const urlKey = urlParams.get('key');
@@ -558,8 +593,9 @@
 
       directionsRenderer.setMap(map);
 
-      // User location marker
+      // User location marker (initialized with position so it is never null)
       userMarker = new google.maps.Marker({
+        position: initialPos,
         map: map,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
@@ -571,41 +607,86 @@
         }
       });
 
-      // Init Places Autocomplete
-      initAutocomplete();
+      // Tap anywhere on map to set destination pin
+      const geocoder = new google.maps.Geocoder();
+      map.addListener("click", (e) => {
+        if (e && e.latLng) {
+          geocoder.geocode({ location: e.latLng }, (results, status) => {
+            let label = "Selected Location";
+            if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+              label = results[0].formatted_address.split(",")[0] || results[0].formatted_address;
+            }
+            setDestination(e.latLng, label);
+          });
+        }
+      });
+
+      // Init Places Autocomplete & Geocoder
+      initAutocomplete(geocoder);
 
       // Start GPS location tracking
       startLocationWatch();
     };
 
     // =========================================================================
-    // 2. Google Places Autocomplete
+    // 2. Set Destination & Places Autocomplete
     // =========================================================================
-    function initAutocomplete() {
+    function setDestination(latLng, name) {
+      destinationCoord = latLng;
+      destinationName = name || "Destination";
+      document.getElementById("searchInput").value = destinationName;
+      document.getElementById("clearSearchBtn").style.display = "block";
+
+      // Place destination pin
+      if (destMarker) destMarker.setMap(null);
+      destMarker = new google.maps.Marker({
+        position: destinationCoord,
+        map: map,
+        title: destinationName,
+        animation: google.maps.Animation.DROP
+      });
+
+      calculateRoute(destinationCoord);
+    }
+
+    function initAutocomplete(geocoder) {
       const input = document.getElementById("searchInput");
       const autocomplete = new google.maps.places.Autocomplete(input, {
         fields: ["geometry", "name", "formatted_address"]
       });
 
+      function geocodeAndSet(query) {
+        if (!query || query.trim().length === 0) return;
+        geocoder.geocode({ address: query }, (results, status) => {
+          if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+            setDestination(results[0].geometry.location, results[0].formatted_address || query);
+          } else {
+            alert("Could not find location: " + query + "\n\n💡 Tip: You can also tap directly anywhere on the map to drop a destination pin!");
+          }
+        });
+      }
+
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) {
-          return;
+        if (place && place.geometry && place.geometry.location) {
+          setDestination(place.geometry.location, place.name || place.formatted_address || "Destination");
+        } else if (input.value.trim().length > 0) {
+          geocodeAndSet(input.value.trim());
         }
+      });
 
-        destinationCoord = place.geometry.location;
-        destinationName = place.name || "Destination";
-        document.getElementById("clearSearchBtn").style.display = "block";
-
-        // Place destination pin
-        if (destMarker) destMarker.setMap(null);
-        destMarker = new google.maps.Marker({
-          position: destinationCoord,
-          map: map,
-          title: destinationName
-        });
-
-        calculateRoute(destinationCoord);
+      // Allow pressing Enter / Search on keyboard
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          input.blur();
+          const place = autocomplete.getPlace();
+          if (place && place.geometry && place.geometry.location) {
+            setDestination(place.geometry.location, place.name || "Destination");
+          } else if (input.value.trim().length > 0) {
+            geocodeAndSet(input.value.trim());
+          }
+        }
       });
     }
 
@@ -613,13 +694,10 @@
     // 3. Route Calculation & Step Extraction
     // =========================================================================
     function calculateRoute(dest) {
-      if (!userMarker.getPosition()) {
-        alert("Acquiring GPS location... please allow location permissions.");
-        return;
-      }
+      const origin = (userMarker && userMarker.getPosition()) ? userMarker.getPosition() : map.getCenter();
 
       const request = {
-        origin: userMarker.getPosition(),
+        origin: origin,
         destination: dest,
         travelMode: google.maps.TravelMode.BICYCLING
       };
@@ -654,7 +732,7 @@
               document.getElementById("hudRem").textContent = leg.distance.text;
               document.getElementById("hudEta").textContent = leg.duration.text;
             } else {
-              alert("Could not calculate route: " + status);
+              alert("Could not calculate route: " + stat2 + "\n\nReason: Google could not find a road route to this point. Please try a nearby road or tap on a road on the map.");
             }
           });
         }
