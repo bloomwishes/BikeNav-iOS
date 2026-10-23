@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>BikeNav — Turn-by-Turn GPS to ESP32</title>
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f0f6fc;
+      --text-sub: #8b949e;
+      --green: #00e676;
+      --cyan: #00e5ff;
+      --amber: #ffab00;
+      --red: #ff3d00;
+      --blue: #2979ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: #111;
+    }
+
+    /* Top Navigation Floating Header */
+    .header-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 16px);
+      left: 16px;
+      right: 16px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .top-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search-container {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 44px 0 42px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      user-select: text;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: var(--text-sub);
+      pointer-events: none;
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-size: 18px;
+      cursor: pointer;
+      display: none;
+      padding: 6px;
+    }
+
+    .icon-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
+    .icon-btn.connected {
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 16px rgba(0, 230, 118, 0.4);
+    }
+
+    /* Bottom HUD / Turn-by-Turn Card */
+    .hud-card {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 12px);
+      left: 16px;
+      right: 16px;
+      z-index: 20;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 16px 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hud-primary {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .hud-maneuver-box {
+      width: 64px;
+      height: 64px;
+      background: rgba(41, 121, 255, 0.15);
+      border: 2px solid var(--blue);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+
+    .hud-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hud-dist {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .hud-street {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--cyan);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hud-then {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amber);
+      margin-top: 2px;
+    }
+
+    .hud-stats-bar {
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 10px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .hud-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 22px;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .btn-stop {
+      background: rgba(255, 61, 0, 0.2);
+      border: 1px solid var(--red);
+      color: var(--red);
+    }
+
+    .btn-ble {
+      background: rgba(0, 230, 118, 0.15);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+
+    /* Modal dialogs */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 400px;
+      background: #161b26;
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .input-field {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      background: #0b0f19;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      user-select: text;
+    }
+
+    .input-field:focus {
+      border-color: var(--blue);
+    }
+
+    /* Status badge */
+    .ble-status-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-sub);
+    }
+    .ble-status-pill.connected {
+      background: rgba(0, 230, 118, 0.2);
+      color: var(--green);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Google Map View -->
+  <div id="map"></div>
+
+  <!-- Top Floating Controls -->
+  <div class="header-bar">
+    <div class="top-controls">
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search destination...">
+        <button id="clearSearchBtn" class="clear-btn">✕</button>
+      </div>
+
+      <button id="bleBtn" class="icon-btn" title="Connect ESP32 BLE">
+        ⚡
+      </button>
+
+      <button id="settingsBtn" class="icon-btn" title="Settings">
+        ⚙️
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation HUD -->
+  <div class="hud-card" id="hudCard">
+    <div class="hud-primary">
+      <div class="hud-maneuver-box" id="hudIcon">🚴</div>
+      <div class="hud-details">
+        <div class="hud-dist" id="hudDist">READY</div>
+        <div class="hud-street" id="hudStreet">Search destination to start</div>
+        <div class="hud-then" id="hudThen"></div>
+      </div>
+    </div>
+
+    <div class="hud-stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">ETA</span>
+        <span class="stat-val" id="hudEta">--:--</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Remaining</span>
+        <span class="stat-val" id="hudRem">--</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Speed</span>
+        <span class="stat-val" id="hudSpeed">0 km/h</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">ESP32</span>
+        <span class="stat-val ble-status-pill" id="hudBleStatus">Disconnected</span>
+      </div>
+    </div>
+
+    <div class="hud-actions" id="hudActions">
+      <button class="btn btn-ble" id="connectBleActionBtn">
+        <span>⚡ Connect ESP32 BLE</span>
+      </button>
+      <button class="btn btn-primary" id="startNavBtn" style="display: none;">
+        <span>▶ Start Navigation</span>
+      </button>
+      <button class="btn btn-stop" id="stopNavBtn" style="display: none;">
+        <span>⏹ Stop Route</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>⚙️ BikeNav Settings</span>
+      </div>
+
+      <div>
+        <label style="font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 6px;">
+          Google Maps API Key:
+        </label>
+        <input type="text" id="apiKeyInput" class="input-field" placeholder="AIzaSy...">
+        <p style="font-size: 11px; color: var(--text-sub); margin-top: 6px;">
+          Requires Maps JavaScript, Places, and Directions APIs.
+        </p>
+      </div>
+
+      <div>
+        <label style="font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 6px;">
+          Simulation / Demo Mode:
+        </label>
+        <button class="btn btn-primary" id="demoModeBtn" style="height: 38px; font-size: 13px;">
+          Test Demo Turns on ESP32
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button class="btn" style="background: rgba(255,255,255,0.1); color: #fff;" id="closeSettingsBtn">
+          Close
+        </button>
+        <button class="btn btn-primary" id="saveSettingsBtn">
+          Save & Reload
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // BLE Constants matching ESP32_BLE_BikeNav
+    // =========================================================================
+    const SERVICE_UUID = "12345678-1234-1234-1234-123456789abc";
+    const NAV_CHAR_UUID = "12345678-1234-1234-1234-123456789abd";
+    const STATUS_CHAR_UUID = "12345678-1234-1234-1234-123456789abe";
+
+    let bleDevice = null;
+    let navCharacteristic = null;
+    let bleConnected = false;
+
+    // Navigation State
+    let map = null;
+    let userMarker = null;
+    let destMarker = null;
+    let directionsService = null;
+    let directionsRenderer = null;
+    let currentRouteSteps = [];
+    let currentStepIndex = 0;
+    let isNavigating = false;
+    let watchId = null;
+    let lastSentNavJson = "";
+    let destinationCoord = null;
+    let destinationName = "";
+    let wakeLock = null;
+
+    // Maneuver icon mappings
+    const MANEUVER_ICONS = {
+      "STRAIGHT": "⬆️",
+      "LEFT": "⬅️",
+      "RIGHT": "➡️",
+      "SLIGHT_LEFT": "↖️",
+      "SLIGHT_RIGHT": "↗️",
+      "SHARP_LEFT": "⬰",
+      "SHARP_RIGHT": "⬱",
+      "UTURN": "↩️",
+      "ROUNDABOUT": "🔄",
+      "ARRIVED": "🏁",
+      "IDLE": "🚴"
+    };
+
+    // =========================================================================
+    // 1. Google Maps Initialization
+    // =========================================================================
+    function getStoredApiKey() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlKey = urlParams.get('key');
+      if (urlKey) {
+        localStorage.setItem('google_maps_api_key', urlKey);
+        return urlKey;
+      }
+      return localStorage.getItem('google_maps_api_key') || "";
+    }
+
+    function loadGoogleMapsScript() {
+      const key = getStoredApiKey();
+      if (!key) {
+        document.getElementById('settingsModal').style.display = 'flex';
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places,geometry&callback=initMap`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        alert("Failed to load Google Maps. Please verify your API key in Settings.");
+        document.getElementById('settingsModal').style.display = 'flex';
+      };
+      document.head.appendChild(script);
+    }
+
+    window.initMap = function() {
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        suppressMarkers: true,
+        polylineOptions: {
+          strokeColor: "#2979ff",
+          strokeWeight: 6,
+          strokeOpacity: 0.9
+        }
+      });
+
+      // Dark style for maps
+      const darkMapStyle = [
+        { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+        { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+        { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+      ];
+
+      const initialPos = { lat: 10.7867, lng: 76.6548 }; // Default (can be any center)
+
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 16,
+        center: initialPos,
+        styles: darkMapStyle,
+        disableDefaultUI: true,
+        zoomControl: false
+      });
+
+      directionsRenderer.setMap(map);
+
+      // User location marker
+      userMarker = new google.maps.Marker({
+        map: map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: "#00e5ff",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3
+        }
+      });
+
+      // Init Places Autocomplete
+      initAutocomplete();
+
+      // Start GPS location tracking
+      startLocationWatch();
+    };
+
+    // =========================================================================
+    // 2. Google Places Autocomplete
+    // =========================================================================
+    function initAutocomplete() {
+      const input = document.getElementById("searchInput");
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ["geometry", "name", "formatted_address"]
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+          return;
+        }
+
+        destinationCoord = place.geometry.location;
+        destinationName = place.name || "Destination";
+        document.getElementById("clearSearchBtn").style.display = "block";
+
+        // Place destination pin
+        if (destMarker) destMarker.setMap(null);
+        destMarker = new google.maps.Marker({
+          position: destinationCoord,
+          map: map,
+          title: destinationName
+        });
+
+        calculateRoute(destinationCoord);
+      });
+    }
+
+    // =========================================================================
+    // 3. Route Calculation & Step Extraction
+    // =========================================================================
+    function calculateRoute(dest) {
+      if (!userMarker.getPosition()) {
+        alert("Acquiring GPS location... please allow location permissions.");
+        return;
+      }
+
+      const request = {
+        origin: userMarker.getPosition(),
+        destination: dest,
+        travelMode: google.maps.TravelMode.BICYCLING
+      };
+
+      directionsService.route(request, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          directionsRenderer.setDirections(result);
+          parseRouteSteps(result);
+
+          // Show Start Button
+          document.getElementById("startNavBtn").style.display = "flex";
+          document.getElementById("connectBleActionBtn").style.display = bleConnected ? "none" : "flex";
+          document.getElementById("stopNavBtn").style.display = "none";
+
+          const leg = result.routes[0].legs[0];
+          document.getElementById("hudDist").textContent = leg.distance.text;
+          document.getElementById("hudStreet").textContent = destinationName;
+          document.getElementById("hudRem").textContent = leg.distance.text;
+          document.getElementById("hudEta").textContent = leg.duration.text;
+        } else {
+          // Fallback to driving if bicycling is unavailable in region
+          request.travelMode = google.maps.TravelMode.DRIVING;
+          directionsService.route(request, (res2, stat2) => {
+            if (stat2 === google.maps.DirectionsStatus.OK) {
+              directionsRenderer.setDirections(res2);
+              parseRouteSteps(res2);
+              document.getElementById("startNavBtn").style.display = "flex";
+              document.getElementById("connectBleActionBtn").style.display = bleConnected ? "none" : "flex";
+              const leg = res2.routes[0].legs[0];
+              document.getElementById("hudDist").textContent = leg.distance.text;
+              document.getElementById("hudStreet").textContent = destinationName;
+              document.getElementById("hudRem").textContent = leg.distance.text;
+              document.getElementById("hudEta").textContent = leg.duration.text;
+            } else {
+              alert("Could not calculate route: " + status);
+            }
+          });
+        }
+      });
+    }
+
+    function parseRouteSteps(result) {
+      const leg = result.routes[0].legs[0];
+      currentRouteSteps = [];
+
+      for (let i = 0; i < leg.steps.length; i++) {
+        const step = leg.steps[i];
+        let maneuver = "STRAIGHT";
+
+        if (step.maneuver) {
+          const m = step.maneuver.toLowerCase();
+          if (m.includes("left")) {
+            maneuver = m.includes("slight") ? "SLIGHT_LEFT" : (m.includes("sharp") ? "SHARP_LEFT" : "LEFT");
+          } else if (m.includes("right")) {
+            maneuver = m.includes("slight") ? "SLIGHT_RIGHT" : (m.includes("sharp") ? "SHARP_RIGHT" : "RIGHT");
+          } else if (m.includes("uturn")) {
+            maneuver = "UTURN";
+          } else if (m.includes("roundabout")) {
+            maneuver = "ROUNDABOUT";
+          }
+        }
+
+        // Clean street name from html_instructions
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = step.instructions;
+        const bTags = tempDiv.getElementsByTagName("b");
+        let street = bTags.length > 0 ? bTags[bTags.length - 1].innerText : tempDiv.innerText;
+
+        currentRouteSteps.push({
+          maneuver: maneuver,
+          distance: step.distance.text,
+          distanceVal: step.distance.value,
+          duration: step.duration.text,
+          durationVal: step.duration.value,
+          street: street || "Follow Route",
+          endLocation: step.end_location
+        });
+      }
+
+      currentStepIndex = 0;
+    }
+
+    // =========================================================================
+    // 4. GPS Tracking & Navigation Logic
+    // =========================================================================
+    function startLocationWatch() {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser");
+        return;
+      }
+
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const userPos = new google.maps.LatLng(lat, lng);
+
+          userMarker.setPosition(userPos);
+
+          if (!isNavigating && !destinationCoord) {
+            map.setCenter(userPos);
+          }
+
+          const speedKmh = Math.max(0, (pos.coords.speed || 0) * 3.6);
+          document.getElementById("hudSpeed").textContent = Math.round(speedKmh) + " km/h";
+
+          if (isNavigating) {
+            updateNavigationProgress(userPos, speedKmh);
+          }
+        },
+        (err) => console.warn("GPS watch error:", err),
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+      );
+    }
+
+    function updateNavigationProgress(userPos, speedKmh) {
+      if (!currentRouteSteps || currentStepIndex >= currentRouteSteps.length) {
+        // Arrived!
+        sendNavDataToESP32("ARRIVED", "0 m", destinationName, "--:--", "0 m", speedKmh, "ARRIVED");
+        document.getElementById("hudIcon").textContent = "🏁";
+        document.getElementById("hudDist").textContent = "ARRIVED";
+        document.getElementById("hudStreet").textContent = destinationName;
+        return;
+      }
+
+      const step = currentRouteSteps[currentStepIndex];
+      const distToStepEnd = google.maps.geometry.spherical.computeDistanceBetween(userPos, step.endLocation);
+
+      // Advance step if within 30 meters
+      if (distToStepEnd <= 30) {
+        currentStepIndex++;
+        if (currentStepIndex >= currentRouteSteps.length) {
+          updateNavigationProgress(userPos, speedKmh);
+          return;
+        }
+      }
+
+      const activeStep = currentRouteSteps[currentStepIndex];
+      const distStr = distToStepEnd < 1000 ? Math.round(distToStepEnd) + " m" : (distToStepEnd / 1000).toFixed(1) + " km";
+
+      // Calculate remaining distance
+      let remainingMeters = distToStepEnd;
+      for (let i = currentStepIndex + 1; i < currentRouteSteps.length; i++) {
+        remainingMeters += currentRouteSteps[i].distanceVal;
+      }
+      const remStr = remainingMeters < 1000 ? Math.round(remainingMeters) + " m" : (remainingMeters / 1000).toFixed(1) + " km";
+
+      // Then turn
+      let thenTurn = "";
+      if (currentStepIndex + 1 < currentRouteSteps.length) {
+        thenTurn = "THEN: " + currentRouteSteps[currentStepIndex + 1].maneuver;
+      }
+
+      // Update UI
+      document.getElementById("hudIcon").textContent = MANEUVER_ICONS[activeStep.maneuver] || "⬆️";
+      document.getElementById("hudDist").textContent = distStr;
+      document.getElementById("hudStreet").textContent = activeStep.street;
+      document.getElementById("hudThen").textContent = thenTurn;
+      document.getElementById("hudRem").textContent = remStr;
+
+      // Keep map centered on user
+      map.setCenter(userPos);
+
+      // Transmit to ESP32
+      sendNavDataToESP32(
+        activeStep.maneuver,
+        distStr,
+        activeStep.street,
+        document.getElementById("hudEta").textContent,
+        remStr,
+        speedKmh,
+        thenTurn
+      );
+    }
+
+    // =========================================================================
+    // 5. Web Bluetooth (BLE) to ESP32
+    // =========================================================================
+    async function connectBLE() {
+      if (!navigator.bluetooth) {
+        alert("Web Bluetooth is not available in this browser!\n\n👉 On iPhone, you must open this webpage in the free 'Bluefy' app from the App Store.");
+        return;
+      }
+
+      try {
+        document.getElementById("hudBleStatus").textContent = "Connecting...";
+        
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [
+            { name: "BikeNav-BLE" },
+            { services: [SERVICE_UUID] }
+          ],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        bleDevice.addEventListener("gattserverdisconnected", onBleDisconnected);
+
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        navCharacteristic = await service.getCharacteristic(NAV_CHAR_UUID);
+
+        bleConnected = true;
+        document.getElementById("bleBtn").classList.add("connected");
+        document.getElementById("hudBleStatus").textContent = "Connected";
+        document.getElementById("hudBleStatus").classList.add("connected");
+        document.getElementById("connectBleActionBtn").style.display = "none";
+
+        // Keep phone screen awake while riding
+        requestWakeLock();
+
+        // Send handshake
+        sendNavDataToESP32("IDLE", "READY", "iPhone Connected", "--:--", "--", 0, "");
+      } catch (err) {
+        console.error("BLE Connect failed:", err);
+        document.getElementById("hudBleStatus").textContent = "Disconnected";
+        document.getElementById("hudBleStatus").classList.remove("connected");
+      }
+    }
+
+    function onBleDisconnected() {
+      bleConnected = false;
+      navCharacteristic = null;
+      document.getElementById("bleBtn").classList.remove("connected");
+      document.getElementById("hudBleStatus").textContent = "Disconnected";
+      document.getElementById("hudBleStatus").classList.remove("connected");
+      if (!isNavigating) {
+        document.getElementById("connectBleActionBtn").style.display = "flex";
+      }
+    }
+
+    async function sendNavDataToESP32(turn, dist, street, eta, rem, speed, thenTurn) {
+      if (!bleConnected || !navCharacteristic) return;
+
+      const payload = {
+        turn: turn || "STRAIGHT",
+        dist: dist || "---",
+        street: street || "Follow Route",
+        eta: eta || "--:--",
+        rem: rem || "",
+        speed: Math.round(speed || 0),
+        then: thenTurn || ""
+      };
+
+      const jsonStr = JSON.stringify(payload);
+      if (jsonStr === lastSentNavJson) return; // Deduplicate packets
+      lastSentNavJson = jsonStr;
+
+      try {
+        const encoder = new TextEncoder();
+        await navCharacteristic.writeValue(encoder.encode(jsonStr));
+      } catch (err) {
+        console.warn("BLE write failed:", err);
+      }
+    }
+
+    // =========================================================================
+    // 6. Wake Lock API (Screen stays on during bike rides)
+    // =========================================================================
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {
+        console.log("WakeLock error:", e);
+      }
+    }
+
+    // =========================================================================
+    // 7. Event Listeners & Controls
+    // =========================================================================
+    document.getElementById("bleBtn").addEventListener("click", connectBLE);
+    document.getElementById("connectBleActionBtn").addEventListener("click", connectBLE);
+
+    document.getElementById("startNavBtn").addEventListener("click", () => {
+      isNavigating = true;
+      document.getElementById("startNavBtn").style.display = "none";
+      document.getElementById("stopNavBtn").style.display = "flex";
+      map.setZoom(18);
+      requestWakeLock();
+    });
+
+    document.getElementById("stopNavBtn").addEventListener("click", () => {
+      isNavigating = false;
+      document.getElementById("startNavBtn").style.display = "flex";
+      document.getElementById("stopNavBtn").style.display = "none";
+      document.getElementById("hudIcon").textContent = "🚴";
+      document.getElementById("hudDist").textContent = "READY";
+      document.getElementById("hudStreet").textContent = "Search destination";
+      sendNavDataToESP32("IDLE", "---", "Open BikeNav App", "--:--", "", 0, "");
+    });
+
+    document.getElementById("clearSearchBtn").addEventListener("click", () => {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("clearSearchBtn").style.display = "none";
+      if (destMarker) destMarker.setMap(null);
+      if (directionsRenderer) directionsRenderer.setDirections({ routes: [] });
+      isNavigating = false;
+      document.getElementById("startNavBtn").style.display = "none";
+      document.getElementById("stopNavBtn").style.display = "none";
+      document.getElementById("connectBleActionBtn").style.display = bleConnected ? "none" : "flex";
+      sendNavDataToESP32("IDLE", "---", "Open BikeNav App", "--:--", "", 0, "");
+    });
+
+    document.getElementById("settingsBtn").addEventListener("click", () => {
+      document.getElementById("apiKeyInput").value = getStoredApiKey();
+      document.getElementById("settingsModal").style.display = "flex";
+    });
+
+    document.getElementById("closeSettingsBtn").addEventListener("click", () => {
+      document.getElementById("settingsModal").style.display = "none";
+    });
+
+    document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+      const key = document.getElementById("apiKeyInput").value.trim();
+      if (key) {
+        localStorage.setItem("google_maps_api_key", key);
+        location.reload();
+      } else {
+        alert("Please enter a valid Google Maps API Key.");
+      }
+    });
+
+    // Demo Mode: Loops turns so you can test display on your desk
+    let demoInterval = null;
+    document.getElementById("demoModeBtn").addEventListener("click", () => {
+      if (demoInterval) {
+        clearInterval(demoInterval);
+        demoInterval = null;
+        document.getElementById("demoModeBtn").textContent = "Test Demo Turns on ESP32";
+        sendNavDataToESP32("IDLE", "---", "Open BikeNav App", "--:--", "", 0, "");
+        return;
+      }
+
+      if (!bleConnected) {
+        alert("Please connect to ESP32 via Bluetooth first!");
+        return;
+      }
+
+      document.getElementById("settingsModal").style.display = "none";
+      document.getElementById("demoModeBtn").textContent = "Stop Demo";
+
+      const demoSteps = [
+        { turn: "STRAIGHT", dist: "500 m", street: "Palakkad Main Highway", eta: "12:45", rem: "5.4 km", speed: 28, then: "THEN: RIGHT" },
+        { turn: "RIGHT", dist: "150 m", street: "College Road", eta: "12:44", rem: "4.9 km", speed: 22, then: "THEN: LEFT" },
+        { turn: "LEFT", dist: "80 m", street: "Lake View Avenue", eta: "12:42", rem: "3.2 km", speed: 19, then: "THEN: ROUNDABOUT" },
+        { turn: "ROUNDABOUT", dist: "20 m", street: "Central Rotary", eta: "12:40", rem: "2.1 km", speed: 15, then: "THEN: STRAIGHT" },
+        { turn: "ARRIVED", dist: "0 m", street: "Tech Park Destination", eta: "12:35", rem: "0 m", speed: 0, then: "" }
+      ];
+
+      let idx = 0;
+      demoInterval = setInterval(() => {
+        const step = demoSteps[idx];
+        document.getElementById("hudIcon").textContent = MANEUVER_ICONS[step.turn] || "⬆️";
+        document.getElementById("hudDist").textContent = step.dist;
+        document.getElementById("hudStreet").textContent = step.street;
+        document.getElementById("hudThen").textContent = step.then;
+        document.getElementById("hudEta").textContent = step.eta;
+        document.getElementById("hudRem").textContent = step.rem;
+        document.getElementById("hudSpeed").textContent = step.speed + " km/h";
+
+        sendNavDataToESP32(step.turn, step.dist, step.street, step.eta, step.rem, step.speed, step.then);
+        idx = (idx + 1) % demoSteps.length;
+      }, 3500);
+    });
+
+    // Start App
+    window.addEventListener("DOMContentLoaded", () => {
+      loadGoogleMapsScript();
+    });
+  </script>
+</body>
+</html>
