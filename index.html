@@ -805,7 +805,7 @@
       }
 
       try {
-        document.getElementById("hudBleStatus").textContent = "Connecting...";
+        document.getElementById("hudBleStatus").textContent = "Pairing...";
         
         bleDevice = await navigator.bluetooth.requestDevice({
           filters: [
@@ -817,9 +817,11 @@
 
         bleDevice.addEventListener("gattserverdisconnected", onBleDisconnected);
 
+        document.getElementById("hudBleStatus").textContent = "Connecting...";
         console.log("[BLE] Connecting to GATT Server...");
         const server = await bleDevice.gatt.connect();
 
+        document.getElementById("hudBleStatus").textContent = "Discovering...";
         // Allow iOS CoreBluetooth stack to settle before service discovery
         await new Promise(r => setTimeout(r, 400));
 
@@ -848,6 +850,12 @@
         document.getElementById("hudBleStatus").classList.remove("connected");
         if (!isNavigating) {
           document.getElementById("connectBleActionBtn").style.display = "flex";
+        }
+
+        const msg = String(err.message || err);
+        // Only alert if it's not a user cancellation of the device picker
+        if (!msg.toLowerCase().includes("cancel") && !msg.toLowerCase().includes("abort")) {
+          alert("Bluetooth Connection Notice:\n" + msg + "\n\n💡 Tip: If you connected in iPhone Settings > Bluetooth, please 'Forget This Device' in iPhone Settings first. Web Bluetooth must connect directly from this page in Bluefy.");
         }
       }
     }
@@ -1007,7 +1015,10 @@
       }
 
       if (!bleConnected) {
-        alert("Please connect to ESP32 via Bluetooth first!");
+        if (confirm("ESP32 is not connected to this webpage yet.\n\nWould you like to connect now?")) {
+          document.getElementById("settingsModal").style.display = "none";
+          connectBLE();
+        }
         return;
       }
 
