@@ -810,15 +810,23 @@
         bleDevice = await navigator.bluetooth.requestDevice({
           filters: [
             { name: "BikeNav-BLE" },
-            { services: [SERVICE_UUID] }
+            { namePrefix: "BikeNav" }
           ],
           optionalServices: [SERVICE_UUID]
         });
 
         bleDevice.addEventListener("gattserverdisconnected", onBleDisconnected);
 
+        console.log("[BLE] Connecting to GATT Server...");
         const server = await bleDevice.gatt.connect();
+
+        // Allow iOS CoreBluetooth stack to settle before service discovery
+        await new Promise(r => setTimeout(r, 400));
+
+        console.log("[BLE] Discovering Primary Service...");
         const service = await server.getPrimaryService(SERVICE_UUID);
+
+        console.log("[BLE] Discovering Nav Characteristic...");
         navCharacteristic = await service.getCharacteristic(NAV_CHAR_UUID);
 
         bleConnected = true;
@@ -830,23 +838,58 @@
         // Keep phone screen awake while riding
         requestWakeLock();
 
-        // Send handshake
-        sendNavDataToESP32("IDLE", "READY", "iPhone Connected", "--:--", "--", 0, "");
+        // Send initial handshake after small settling delay
+        await new Promise(r => setTimeout(r, 300));
+        await sendNavDataToESP32("IDLE", "READY", "iPhone Connected", "--:--", "--", 0, "");
+        console.log("[BLE] Handshake sent successfully!");
       } catch (err) {
         console.error("BLE Connect failed:", err);
         document.getElementById("hudBleStatus").textContent = "Disconnected";
         document.getElementById("hudBleStatus").classList.remove("connected");
+        if (!isNavigating) {
+          document.getElementById("connectBleActionBtn").style.display = "flex";
+        }
       }
     }
 
     function onBleDisconnected() {
+      console.log("[BLE] Peripheral disconnected.");
       bleConnected = false;
       navCharacteristic = null;
       document.getElementById("bleBtn").classList.remove("connected");
-      document.getElementById("hudBleStatus").textContent = "Disconnected";
+      document.getElementById("hudBleStatus").textContent = "Reconnecting...";
       document.getElementById("hudBleStatus").classList.remove("connected");
-      if (!isNavigating) {
-        document.getElementById("connectBleActionBtn").style.display = "flex";
+
+      // Auto-reconnect after brief backoff if GATT device handle is preserved
+      if (bleDevice && bleDevice.gatt) {
+        setTimeout(async () => {
+          if (bleConnected) return;
+          try {
+            console.log("[BLE] Auto-reconnecting to ESP32...");
+            const server = await bleDevice.gatt.connect();
+            await new Promise(r => setTimeout(r, 400));
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            navCharacteristic = await service.getCharacteristic(NAV_CHAR_UUID);
+
+            bleConnected = true;
+            document.getElementById("bleBtn").classList.add("connected");
+            document.getElementById("hudBleStatus").textContent = "Connected";
+            document.getElementById("hudBleStatus").classList.add("connected");
+            document.getElementById("connectBleActionBtn").style.display = "none";
+            console.log("[BLE] Auto-reconnected!");
+          } catch (e) {
+            console.warn("[BLE] Auto-reconnect failed:", e);
+            document.getElementById("hudBleStatus").textContent = "Disconnected";
+            if (!isNavigating) {
+              document.getElementById("connectBleActionBtn").style.display = "flex";
+            }
+          }
+        }, 1200);
+      } else {
+        document.getElementById("hudBleStatus").textContent = "Disconnected";
+        if (!isNavigating) {
+          document.getElementById("connectBleActionBtn").style.display = "flex";
+        }
       }
     }
 
@@ -869,7 +912,16 @@
 
       try {
         const encoder = new TextEncoder();
-        await navCharacteristic.writeValue(encoder.encode(jsonStr));
+        const data = encoder.encode(jsonStr);
+
+        // Modern Web Bluetooth: WriteWithoutResponse preferred for fast reliable delivery
+        if (typeof navCharacteristic.writeValueWithoutResponse === 'function') {
+          await navCharacteristic.writeValueWithoutResponse(data);
+        } else if (typeof navCharacteristic.writeValueWithResponse === 'function') {
+          await navCharacteristic.writeValueWithResponse(data);
+        } else {
+          await navCharacteristic.writeValue(data);
+        }
       } catch (err) {
         console.warn("BLE write failed:", err);
       }
